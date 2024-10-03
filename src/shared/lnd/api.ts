@@ -36,12 +36,6 @@ class LightningAPI {
 
     const socks = new URL(args.proxy);
 
-    // this.agent = new SocksProxyAgent({
-    //   hostname: socks.hostname,
-    //   port: socks.port,
-    //   protocol: socks.protocol
-    //    tls: { rejectUnauthorized: false }
-    // });
     const proxyUrl = `${socks.protocol}://${socks.hostname}:${socks.port}`;
 
     // Pass the constructed URL to SocksProxyAgent
