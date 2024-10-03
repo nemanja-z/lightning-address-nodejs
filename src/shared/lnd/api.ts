@@ -5,6 +5,7 @@ import { URL } from 'url';
 
 import { LnrpcAddInvoiceResponse, LnrpcInvoice } from './types';
 import logger from '../logger';
+require('dotenv').config();
 
 const BASE_URL = process.env.LNADDR_LND_REST_BASE_URL;
 const MACAROON = process.env.LNADDR_LND_REST_MACAROON_HEX;
@@ -35,13 +36,17 @@ class LightningAPI {
 
     const socks = new URL(args.proxy);
 
-    this.agent = new SocksProxyAgent({
-      hostname: socks.hostname,
-      port: socks.port,
-      protocol: socks.protocol,
-      tls: { rejectUnauthorized: false }
-    });
+    // this.agent = new SocksProxyAgent({
+    //   hostname: socks.hostname,
+    //   port: socks.port,
+    //   protocol: socks.protocol
+    //    tls: { rejectUnauthorized: false }
+    // });
+    const proxyUrl = `${socks.protocol}://${socks.hostname}:${socks.port}`;
 
+    // Pass the constructed URL to SocksProxyAgent
+    this.agent = new SocksProxyAgent(proxyUrl);
+    this.agent.options.rejectUnauthorized = false; // Accept self-signed certificates or insecure TLS
     this.axios = axios.create({
       baseURL: args.baseUrl.endsWith('/') ? args.baseUrl : `${args.baseUrl}/`,
       headers: {
