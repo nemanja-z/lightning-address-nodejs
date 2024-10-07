@@ -46,11 +46,25 @@ router.get('/lnurlp/:username', (req: Request, res: Response, next: NextFunction
           disposable: false
         });
       } catch (error) {
-        logger.error('Error creating Invoice', error);
-        return res.status(500).json({ status: 'ERROR', reason: 'Error generating invoice' });
+        if (error instanceof Error) {
+          logger.error(`Error creating Invoice. Reason ---> ${error.message}`, error);
+          return res.status(500).json({ status: 'ERROR', reason: 'Error generating invoice' });
+        } else {
+          logger.error(`Unexpected error: ${error}`, error);
+          return res.status(500).json({ status: 'ERROR', reason: 'Unexpected error occurred' });
+        }
       }
     }
 
+    logger.info('Response', {
+      status: 'OK',
+      callback: identifier,
+      tag: 'payRequest',
+      maxSendable: 250000000,
+      minSendable: 1000,
+      metadata: JSON.stringify(metadata),
+      commentsAllowed: 0
+    });
     // No amount present, send callback identifier
     return res.status(200).json({
       status: 'OK',
