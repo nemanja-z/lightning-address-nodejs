@@ -5,3 +5,4 @@ logs
 .env
 
 yarn-error.log
+dist
