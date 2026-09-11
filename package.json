@@ -9,6 +9,7 @@
   "private": false,
   "scripts": {
     "build": "tsc",
+    "test": "node --require ts-node/register --test \"src/**/*.spec.ts\"",
     "dev": "ts-node -r tsconfig-paths/register --files src/server.ts",
     "entrypoint": "./entrypoint.sh",
     "prepare": "husky"
@@ -17,7 +18,7 @@
     "@types/express": "^5.0.0",
     "@types/morgan": "^1.9.9",
     "@types/node": "^22.7.4",
-    "eslint": "^9.11.1",
+    "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.14",
     "husky": "^9.1.6",
     "lint-staged": "^15.2.10",

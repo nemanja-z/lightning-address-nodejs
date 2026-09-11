@@ -76,6 +76,19 @@ class LightningAPI {
     return invoice;
   }
 
+  /** Looks up an invoice by hex payment hash. Returns null when the node has never seen it. */
+  async lightningLookupInvoice(paymentHashHex: string): Promise<LnrpcInvoice | null> {
+    try {
+      const resp = await this.axios.get<LnrpcInvoice>(`v1/invoice/${paymentHashHex}`);
+      return resp.data;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
   async sendWebhookNotification(data: any) {
     if (!WEBHOOK_URL) {
       logger.debug('Not sending Notification. LNADDR_NOTIFICATION_WEBHOOK not set');

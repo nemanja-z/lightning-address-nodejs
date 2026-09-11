@@ -1,7 +1,9 @@
 import express, { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { lightningApi } from '../../shared/lnd/api';
+import { toCallbackResponse } from '../../shared/lud21';
 import logger from '../../shared/logger';
+import { createVerifyRouter } from './verify';
 
 const DOMAIN = process.env.LNADDR_DOMAIN;
 const router = express.Router();
@@ -9,6 +11,8 @@ const router = express.Router();
 if (!DOMAIN) {
   throw new Error('Missing LNADDR_DOMAIN env variable');
 }
+
+router.use(createVerifyRouter((hash) => lightningApi.lightningLookupInvoice(hash)));
 
 router.get('/lnurlp/:username', (req: Request, res: Response, next: NextFunction) => {
   const handleRequest = async () => {
@@ -38,13 +42,7 @@ router.get('/lnurlp/:username', (req: Request, res: Response, next: NextFunction
         });
         logger.debug('LND Invoice', invoice);
         lightningApi.sendWebhookNotification(invoice);
-        return res.status(200).json({
-          status: 'OK',
-          successAction: { tag: 'message', message: 'Thank You!' },
-          routes: [],
-          pr: invoice.payment_request,
-          disposable: false
-        });
+        return res.status(200).json(toCallbackResponse(invoice, DOMAIN, username));
       } catch (error) {
         if (error instanceof Error) {
           logger.error(`Error creating Invoice. Reason ---> ${error.message}`, error);

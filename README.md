@@ -34,11 +34,16 @@ This will allow your to receive lightning address payments. It's like an email a
 
 ## Endpoints
 
-| Endpoint                        | Description        |
-| ------------------------------- | ------------------ |
-| `/`                             | Basic welcome page |
-| `/healthz`                      | Health Check       |
-| `/.well-known/lnurlp/:username` | Lightning Address  |
+| Endpoint                                     | Description                 |
+| -------------------------------------------- | --------------------------- |
+| `/`                                          | Basic welcome page          |
+| `/healthz`                                   | Health Check                |
+| `/.well-known/lnurlp/:username`              | Lightning Address           |
+| `/.well-known/lnurlp/:username/verify/:hash` | LUD-21 payment verification |
+
+The invoice callback advertises the `verify` URL, so a payer can confirm settlement and
+obtain the preimage without watching the chain. The macaroon needs invoice read permission
+as well as invoice creation.
 
 ## Deploy
 
