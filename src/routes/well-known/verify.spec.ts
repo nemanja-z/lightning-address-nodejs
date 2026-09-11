@@ -80,6 +80,14 @@ describe('GET /.well-known/lnurlp/:username/verify/:hash', () => {
     assert.deepEqual(body, { status: 'ERROR', reason: 'Not found' });
   });
 
+  // coinsnap.app answers 200 for an unknown hash, and the plugin only parses the body on a
+  // success status. A 404 here would be retried forever instead of pruned.
+  it('serves the Not found error with HTTP 200 as production does', async () => {
+    const { status } = await ctx.get(`/.well-known/lnurlp/test/verify/${'c'.repeat(64)}`);
+
+    assert.equal(status, 200);
+  });
+
   it('rejects a malformed payment hash without querying the node', async () => {
     lookups.length = 0;
 
@@ -87,5 +95,11 @@ describe('GET /.well-known/lnurlp/:username/verify/:hash', () => {
 
     assert.equal(body.status, 'ERROR');
     assert.deepEqual(lookups, []);
+  });
+
+  it('serves the malformed-hash error with HTTP 200 too', async () => {
+    const { status } = await ctx.get('/.well-known/lnurlp/test/verify/not-a-hash');
+
+    assert.equal(status, 200);
   });
 });

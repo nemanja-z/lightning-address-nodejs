@@ -18,13 +18,15 @@ export function createVerifyRouter(lookupInvoice: InvoiceLookup) {
       const handleRequest = async () => {
         const hash = req.params.hash;
 
+        // LNURL errors travel as HTTP 200 with an ERROR body; a client that sees a failure
+        // status never reads the reason and retries instead.
         if (!PAYMENT_HASH.test(hash)) {
-          return res.status(400).json({ status: 'ERROR', reason: 'Invalid payment hash' });
+          return res.status(200).json({ status: 'ERROR', reason: 'Invalid payment hash' });
         }
 
         const invoice = await lookupInvoice(hash.toLowerCase());
         if (!invoice) {
-          return res.status(404).json({ status: 'ERROR', reason: 'Not found' });
+          return res.status(200).json({ status: 'ERROR', reason: 'Not found' });
         }
 
         return res.status(200).json(toVerifyResponse(invoice));
