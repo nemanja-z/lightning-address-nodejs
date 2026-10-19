@@ -31,6 +31,15 @@ router.get('/lnurlp/:username', (req: Request, res: Response, next: NextFunction
 
     if (req.query.amount) {
       const msat = req.query.amount;
+      // Honour the caller's expiry, so a BOLT11 does not outlive the order it pays for.
+      let expiry: string | undefined;
+      if (req.query.expiry !== undefined) {
+        const seconds = Number(req.query.expiry);
+        if (!Number.isInteger(seconds) || seconds < 1 || seconds > 30 * 24 * 3600) {
+          return res.status(200).json({ status: 'ERROR', reason: 'Invalid expiry' });
+        }
+        expiry = String(seconds);
+      }
       try {
         logger.debug('Generating LND Invoice');
         const invoice = await lightningApi.lightningAddInvoice({
@@ -38,7 +47,8 @@ router.get('/lnurlp/:username', (req: Request, res: Response, next: NextFunction
           description_hash: crypto
             .createHash('sha256')
             .update(JSON.stringify(metadata))
-            .digest('base64')
+            .digest('base64'),
+          ...(expiry ? { expiry } : {})
         });
         logger.debug('LND Invoice', invoice);
         lightningApi.sendWebhookNotification(invoice);
