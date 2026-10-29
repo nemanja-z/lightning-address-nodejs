@@ -3,8 +3,11 @@ import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 
+import { createAttackRouter } from './routes/attack';
 import { wellknown } from './routes/well-known';
 import { health } from './routes/health';
+import { attackModesEnabled, holdInvoices } from './shared/attack';
+import { lightningApi } from './shared/lnd/api';
 import logger from './shared/logger';
 
 const PORT = process.env.PORT || 3000;
@@ -48,6 +51,23 @@ app.use('/healthz', health);
 
 // Lightning Address
 app.use('/.well-known', wellknown);
+
+// Test-only controls for hold invoices; see README "Attack modes".
+if (attackModesEnabled()) {
+  const token = process.env.LNADDR_ATTACK_TOKEN;
+  if (!token) {
+    throw new Error('LNADDR_ATTACK_MODES=1 needs LNADDR_ATTACK_TOKEN');
+  }
+  logger.warn('Attack modes are ON: prefixed usernames receive hostile invoices');
+  app.use(
+    '/attack',
+    createAttackRouter(token, {
+      holdInvoices,
+      settle: (preimage) => lightningApi.invoicesSettleInvoice(preimage),
+      cancel: (hash) => lightningApi.invoicesCancelInvoice(hash)
+    })
+  );
+}
 
 // Start Server
 app.listen(PORT, () => {

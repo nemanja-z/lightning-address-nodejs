@@ -76,6 +76,22 @@ class LightningAPI {
     return invoice;
   }
 
+  /** Adds a hold invoice for a hash we chose; LND keeps an arriving HTLC until we settle or cancel. */
+  async invoicesAddHoldInvoice(
+    args: LnrpcInvoice & { hash: string }
+  ): Promise<LnrpcAddInvoiceResponse> {
+    const resp = await this.axios.post<LnrpcAddInvoiceResponse>(`v2/invoices/hodl`, args);
+    return { ...resp.data, r_hash: args.hash };
+  }
+
+  async invoicesSettleInvoice(preimageBase64: string) {
+    await this.axios.post(`v2/invoices/settle`, { preimage: preimageBase64 });
+  }
+
+  async invoicesCancelInvoice(paymentHashBase64: string) {
+    await this.axios.post(`v2/invoices/cancel`, { payment_hash: paymentHashBase64 });
+  }
+
   /** Looks up an invoice by hex payment hash. Returns null when the node has never seen it. */
   async lightningLookupInvoice(paymentHashHex: string): Promise<LnrpcInvoice | null> {
     try {

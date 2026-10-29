@@ -45,6 +45,33 @@ The invoice callback advertises the `verify` URL, so a payer can confirm settlem
 obtain the preimage without watching the chain. The macaroon needs invoice read permission
 as well as invoice creation.
 
+## Attack modes (regtest only)
+
+For testing a payer against a hostile receiver. Off unless `LNADDR_ATTACK_MODES=1`, which also
+requires `LNADDR_ATTACK_TOKEN`. Never enable it on a server with real funds.
+
+The username's prefix picks the behaviour; any other username gets an ordinary invoice:
+
+| Address                 | Invoice returned                                                               |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| `skim-<name>@domain`    | Ordinary. The fee comes from the channel policy of the node in front of LND    |
+| `hint-<name>@domain`    | Private, so it carries route hints with that node's fee over a private channel |
+| `hold-<name>@domain`    | Hold invoice: the HTLC stays pending until settled or cancelled below          |
+| `over-<name>@domain`    | Twice the requested amount                                                     |
+| `zero-<name>@domain`    | No amount                                                                      |
+| `expired-<name>@domain` | Expires after one second                                                       |
+
+Hold invoices are settled or cancelled with the token in an `x-attack-token` header:
+
+| Endpoint                         | Description                                |
+| -------------------------------- | ------------------------------------------ |
+| `GET /attack/hold`               | Hashes of hold invoices not yet resolved   |
+| `POST /attack/hold/:hash/settle` | Settle with the preimage this server kept  |
+| `POST /attack/hold/:hash/cancel` | Cancel, failing the HTLC back to the payer |
+
+Preimages live in memory, so a restart leaves earlier hold invoices to expire on their own.
+The macaroon needs invoice write permission for the `v2/invoices` calls.
+
 ## Deploy
 
 ### Render

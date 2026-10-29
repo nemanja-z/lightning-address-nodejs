@@ -1,11 +1,18 @@
 import express, { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
+import {
+  attackModeFor,
+  attackModesEnabled,
+  holdInvoices,
+  invoiceArgsFor
+} from '../../shared/attack';
 import { lightningApi } from '../../shared/lnd/api';
 import { toCallbackResponse } from '../../shared/lud21';
 import logger from '../../shared/logger';
 import { createVerifyRouter } from './verify';
 
 const DOMAIN = process.env.LNADDR_DOMAIN;
+const ATTACK_MODES_ENABLED = attackModesEnabled();
 const router = express.Router();
 
 if (!DOMAIN) {
@@ -42,14 +49,25 @@ router.get('/lnurlp/:username', (req: Request, res: Response, next: NextFunction
       }
       try {
         logger.debug('Generating LND Invoice');
-        const invoice = await lightningApi.lightningAddInvoice({
-          value_msat: msat as string,
-          description_hash: crypto
+        const attackMode = attackModeFor(username, ATTACK_MODES_ENABLED);
+        const invoiceArgs = invoiceArgsFor(attackMode, {
+          valueMsat: msat as string,
+          descriptionHash: crypto
             .createHash('sha256')
             .update(JSON.stringify(metadata))
             .digest('base64'),
-          ...(expiry ? { expiry } : {})
+          expiry
         });
+        if (attackMode) {
+          logger.warn('Issuing a test attack invoice', { username, attackMode });
+        }
+        const invoice =
+          attackMode === 'hold'
+            ? await lightningApi.invoicesAddHoldInvoice({
+                ...invoiceArgs,
+                hash: holdInvoices.create().hashBase64
+              })
+            : await lightningApi.lightningAddInvoice(invoiceArgs);
         logger.debug('LND Invoice', invoice);
         lightningApi.sendWebhookNotification(invoice);
         return res.status(200).json(toCallbackResponse(invoice, DOMAIN, username));
